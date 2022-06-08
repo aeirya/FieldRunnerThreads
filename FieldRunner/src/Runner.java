@@ -1,27 +1,26 @@
 public class Runner {
-    private final Thread thread;
-    private final Court court;
-    private final int speed;
-    private final int id;
-    private float speedMultiplier = 1f;
+    private static final int SLEEP_INTERVAL = 250;
 
-    public Runner(int id, int speed, Court court) {
-        thread = new Thread(this::run);
-        this.court = court;
-        this.speed = speed;
+    private final Thread thread;
+    private final RunnerBody body;
+    private final int id;
+    private final Court court;
+
+    public Runner(int id, int speed, int fatigue, Court court) {
         this.id = id;
+        this.court = court;
+        
+        body = new RunnerBody(speed, fatigue);
+        thread = new Thread(this::run);
     }
 
     private void run() {
-        int dt = 250;
         while (!isFinished()) {
             try {
-                Thread.sleep(dt);
-                runInCourt(dt);
-                cheat();
-                accelerate();
+                Thread.sleep(SLEEP_INTERVAL);
+                runInCourt(SLEEP_INTERVAL);
             } catch (InterruptedException e) {
-                speedMultiplier *= 0.5;
+                body.startRunning();
                 Thread.currentThread().interrupt();
             }
         }
@@ -29,7 +28,7 @@ public class Runner {
     }
 
     private int calcDistance(int dt) {
-        return (int) (speed * speedMultiplier * dt / 1000);
+        return body.getSpeed() * dt / 1000;
     }
 
     private boolean isFinished() {
@@ -38,17 +37,15 @@ public class Runner {
 
     private void runInCourt(int dt) {
         court.run(id, calcDistance(dt));
+        accelerate();
     }
 
     private void accelerate() {
-        if (speedMultiplier > 1) {
-            speedMultiplier = 1;
-        } else {
-            speedMultiplier *= 1.1;
-        }
+        body.decreaseSpeed();
     }
     
     public void start() {
+        body.startRunning();
         thread.start();
     }
 
@@ -56,7 +53,7 @@ public class Runner {
         thread.interrupt();
     }
 
-    public void cheat() {
-        court.tryPush(id);
+    public void onPassingAnotherRunner(Runner other) {
+        other.interrupt();
     }
 }

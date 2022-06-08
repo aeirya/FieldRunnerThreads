@@ -12,16 +12,16 @@ public class Court {
     private final Random random;
 
     public Court() {
+        endLine = 40;
         random = new Random();
         locations = new HashMap<>();
-        endLine = 100;
         runners = new ArrayList<>();
         initRunners(3);
     }
 
     private void initRunners(int n) {
         for (int i=0; i<n; ++i) {
-            runners.add(new Runner(i, 2, this));
+            runners.add(new Runner(i, 9, 3, this));
         }
         for (int i=0; i<n; ++i) {
             runners.get(i).start();
@@ -31,7 +31,27 @@ public class Court {
     public void run(int runner, int distance) {
         locations.computeIfAbsent(runner, i -> 0);
         int loc = locations.compute(runner, (k,v) -> v + distance);
-        
+        checkAdjacentPass(runner, loc, distance);
+    }
+
+    private void checkAdjacentPass(int runner, int runnerLoc, int dx) {
+        if (runner > 0) {
+            tryInterrupt(runner, runnerLoc, runner - 1, dx);
+        }
+        if (runner < runners.size()-1) {
+            tryInterrupt(runner, runnerLoc, runner + 1, dx);
+        }
+    }
+
+    private boolean checkPass(int runnerLoc, int other, int dx) {
+        int otherLoc = locations.get(other);
+        return runnerLoc < otherLoc && runnerLoc + dx > otherLoc;
+    }
+
+    private void tryInterrupt(int runner, int runnerLoc, int other, int dx) {
+        if (checkPass(runnerLoc, other, dx)) {
+            runners.get(runner).onPassingAnotherRunner(runners.get(other));
+        }
     }
 
     public boolean isFinished(int runner) {
@@ -45,6 +65,7 @@ public class Court {
             else if (cheater - 1 < 0) cheated = cheater + 1;
             else cheated = random.nextFloat() < 0.5 ? cheater - 1 : cheater + 1;
             System.out.println(cheater + " tries to push " + cheated);
+            runners.get(cheated).interrupt();
         }
     }
 }
